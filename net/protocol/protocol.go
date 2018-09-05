@@ -98,6 +98,8 @@ type Noder interface {
 	CleanSubmittedTransactions(txns []*transaction.Transaction) error
 
 	GetNeighborNoder() []Noder
+	GetFloodingNeighbors(Noder) []Noder
+	RecomputeFloodingTable()
 	GetSyncFinishedNeighbors() []Noder
 	GetNbrNodeCnt() uint32
 	StoreFlightHeight(height uint32)

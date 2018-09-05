@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/nknorg/nkn/net/chord"
 	. "github.com/nknorg/nkn/net/protocol"
+	"github.com/nknorg/nkn/util/log"
 )
 
 // The neighbor node list
 type nbrNodes struct {
 	sync.RWMutex
-	List map[uint64]*node
+	List          map[uint64]*node
+	FloodingTable map[uint64][]Noder
 }
 
 func (nm *nbrNodes) Broadcast(buf []byte) {
@@ -30,9 +33,9 @@ func (nm *nbrNodes) NodeExisted(uid uint64) bool {
 	return ok
 }
 
-func (nm *nbrNodes) AddNbrNode(n Noder) {
-	nm.Lock()
-	defer nm.Unlock()
+func (nm *node) AddNbrNode(n Noder) {
+	nm.nbrNodes.Lock()
+	defer nm.nbrNodes.Unlock()
 
 	if nm.NodeExisted(n.GetID()) {
 		fmt.Printf("Insert a existed node\n")
@@ -42,19 +45,21 @@ func (nm *nbrNodes) AddNbrNode(n Noder) {
 			fmt.Println("Convert the noder error when add node")
 			return
 		}
-		nm.List[n.GetID()] = node
+		nm.nbrNodes.List[n.GetID()] = node
 	}
 }
 
-func (nm *nbrNodes) DelNbrNode(id uint64) (Noder, bool) {
-	nm.Lock()
-	defer nm.Unlock()
+func (nm *node) DelNbrNode(id uint64) (Noder, bool) {
+	nm.nbrNodes.Lock()
+	defer nm.nbrNodes.Unlock()
 
-	n, ok := nm.List[id]
+	n, ok := nm.nbrNodes.List[id]
 	if ok == false {
 		return nil, false
 	}
-	delete(nm.List, id)
+
+	delete(nm.nbrNodes.List, id)
+
 	return n, true
 }
 
@@ -234,4 +239,53 @@ func (node *node) ShouldChordAddrInNeighbors(addr []byte) (bool, error) {
 		return false, errors.New("No chord node binded")
 	}
 	return chordNode.ShouldAddrInNeighbors(addr), nil
+}
+
+func (n *node) getFloodingNeighbors(from Noder) []Noder {
+	var nodeNbrs []Noder
+	chordNode, err := n.ring.GetFirstVnode()
+	if err != nil {
+		log.Error("Get chord node error:", err)
+		return nodeNbrs
+	}
+
+	var chordNbrs []*chord.Vnode
+	if from == nil {
+		chordNbrs = chordNode.GetNeighbors()
+	} else {
+		chordNbrs = chordNode.GetFloodingNeighbors(from.GetChordAddr())
+	}
+
+	n.nbrNodes.RLock()
+	defer n.nbrNodes.RUnlock()
+
+	for _, chordNbr := range chordNbrs {
+		nodeNbr := n.GetNeighborByChordAddr(chordNbr.Id)
+		if nodeNbr != nil {
+			nodeNbrs = append(nodeNbrs, nodeNbr)
+		}
+	}
+
+	return nodeNbrs
+}
+
+func (n *node) RecomputeFloodingTable() {
+	floodingTable := make(map[uint64][]Noder)
+	for _, nbr := range n.nbrNodes.List {
+		floodingTable[nbr.GetID()] = n.getFloodingNeighbors(nbr)
+	}
+
+	n.nbrNodes.Lock()
+	n.nbrNodes.FloodingTable = floodingTable
+	n.nbrNodes.Unlock()
+}
+
+func (n *node) GetFloodingNeighbors(from Noder) []Noder {
+	if from == nil {
+		return n.getFloodingNeighbors(nil)
+	}
+	n.nbrNodes.RLock()
+	defer n.nbrNodes.RUnlock()
+	nbrs, _ := n.FloodingTable[from.GetID()]
+	return nbrs
 }

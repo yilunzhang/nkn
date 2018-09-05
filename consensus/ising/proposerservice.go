@@ -239,7 +239,7 @@ func (ps *ProposerService) ProduceNewBlock() {
 	// generate BlockFlooding message
 	blockFlooding := NewBlockFlooding(block)
 	// get nodes which should receive this message
-	nodes := ps.GetReceiverNode(nil)
+	nodes := ps.localNode.GetFloodingNeighbors(nil)
 	// send BlockFlooding message
 	err = ps.SendConsensusMsg(blockFlooding, nodes)
 	if err != nil {
@@ -523,21 +523,24 @@ func (ps *ProposerService) HandleBlockFloodingMsg(bfMsg *BlockFlooding, sender *
 	current.SetSelfState(blockHash, voting.FloodingFinished)
 
 	// relay block to neighbors
-	var nodes []protocol.Noder
 	senderID := publickKeyToNodeID(sender)
-	for _, node := range ps.localNode.GetNeighborNoder() {
-		if node.GetID() != senderID {
-			nodes = append(nodes, node)
+	from := ps.GetReceiverNode([]uint64{senderID})
+	if len(from) > 0 {
+		var nodes []protocol.Noder
+		for _, n := range ps.localNode.GetFloodingNeighbors(from[0]) {
+			if n.GetID() != senderID {
+				nodes = append(nodes, n)
+			}
 		}
-	}
-	err := ps.SendConsensusMsg(bfMsg, nodes)
-	if err != nil {
-		log.Error("broadcast block message error: ", err)
+		err := ps.SendConsensusMsg(bfMsg, nodes)
+		if err != nil {
+			log.Error("broadcast block message error: ", err)
+		}
 	}
 
 	// if block syncing is not finished, cache received blocks in order
 	if ps.localNode.GetSyncState() != protocol.PersistFinished {
-		err = ps.syncCache.AddBlockToSyncCache(bfMsg.block)
+		err := ps.syncCache.AddBlockToSyncCache(bfMsg.block)
 		if err != nil {
 			log.Error("add received block to sync cache error: ", err)
 		}
@@ -552,7 +555,7 @@ func (ps *ProposerService) HandleBlockFloodingMsg(bfMsg *BlockFlooding, sender *
 			" hash: %s\n", votingHeight, height, BytesToHexString(blockHash.ToArrayReverse()))
 		return
 	}
-	err = current.AddToCache(bfMsg.block)
+	err := current.AddToCache(bfMsg.block)
 	if err != nil {
 		log.Error("add received block to local cache error")
 		return
