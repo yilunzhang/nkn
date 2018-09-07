@@ -21,7 +21,7 @@ func (cp *closestPreceedingVnodeIterator) init(vn *localVnode, key []byte, finge
 	} else {
 		cp.successor_idx = len(vn.successors) - 1
 	}
-	cp.finger_idx = len(vn.finger) - 1
+	cp.finger_idx = fingerId(vn.Id, key, cp.vn.ring.config.hashBits)
 	cp.yielded = make(map[string]struct{})
 	cp.inclusive = inclusive
 }
@@ -128,4 +128,10 @@ func distance(a, b []byte, bits int) *big.Int {
 	// Distance modulus ring size
 	(&dist).Mod(&dist, &ring)
 	return &dist
+}
+
+// Returns i, where b in the i-th node in a's finger table
+func fingerId(a, b []byte, bits int) int {
+	dist := distance(a, b, bits)
+	return dist.BitLen() - 1
 }

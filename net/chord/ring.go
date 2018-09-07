@@ -188,15 +188,6 @@ func (r *Ring) GetPredecessor(key []byte) (*Vnode, error) {
 	return vnode.FindPredecessor(key)
 }
 
-func (r *Ring) shouldConnectToHost(host string) bool {
-	for _, vn := range r.Vnodes {
-		if vn != nil && vn.shouldConnectToHost(host) {
-			return true
-		}
-	}
-	return false
-}
-
 // ToData: Extract marshalable data from Ring struct
 func (r *Ring) ToData() *RingData {
 	if r == nil {

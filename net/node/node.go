@@ -118,6 +118,7 @@ func (node *node) RemoveAddrInConnectingList(addr string) {
 	defer node.ConnectingNodes.Unlock()
 	for i, a := range node.ConnectingAddrs {
 		if a == addr {
+			log.Warnf("Removing %s from connecting list", addr)
 			node.ConnectingAddrs = append(node.ConnectingAddrs[:i], node.ConnectingAddrs[i+1:]...)
 			return
 		}
@@ -290,9 +291,13 @@ func (node *node) GetRxTxnCnt() uint64 {
 }
 
 func (node *node) SetState(state uint32) {
+	shouldRecomputeFloodingTable := node.state == ESTABLISH || state == ESTABLISH
 	atomic.StoreUint32(&(node.state), state)
 	if state == ESTABLISH || state == INACTIVITY {
 		node.LocalNode().RemoveAddrInConnectingList(node.GetAddrStr())
+	}
+	if shouldRecomputeFloodingTable {
+		node.LocalNode().RecomputeFloodingTable()
 	}
 }
 
@@ -387,7 +392,7 @@ func (node *node) BroadcastTransaction(from Noder, txn *transaction.Transaction)
 		return err
 	}
 	node.txnCnt++
-	for _, n := range node.GetSyncFinishedNeighbors() {
+	for _, n := range node.GetFloodingNeighbors(from) {
 		if n.GetRelay() && n.GetID() != from.GetID() {
 			n.Tx(buffer)
 		}
@@ -683,7 +688,7 @@ func (node *node) ConnectNeighbors() {
 }
 
 func (node *node) DisconnectNeighbor(nbr *node) {
-	_, success := node.nbrNodes.DelNbrNode(nbr.GetID())
+	_, success := node.DelNbrNode(nbr.GetID())
 	if success {
 		nbr.SetState(INACTIVITY)
 		nbr.CloseConn()
