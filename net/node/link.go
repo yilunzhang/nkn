@@ -17,6 +17,7 @@ import (
 	. "github.com/nknorg/nkn/net/protocol"
 	. "github.com/nknorg/nkn/util/config"
 	"github.com/nknorg/nkn/util/log"
+	kcp "github.com/xtaci/kcp-go"
 )
 
 const (
@@ -167,7 +168,7 @@ func (n *node) initConnection() {
 }
 
 func initNonTlsListen() (net.Listener, error) {
-	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(Parameters.NodePort)))
+	listener, err := kcp.Listen(":" + strconv.Itoa(int(Parameters.NodePort)))
 	if err != nil {
 		log.Error("Error listening\n", err.Error())
 		return nil, err
@@ -272,7 +273,7 @@ func (node *node) Connect(nodeAddr string) error {
 }
 
 func NonTLSDial(nodeAddr string) (net.Conn, error) {
-	conn, err := net.DialTimeout("tcp", nodeAddr, DialTimeout)
+	conn, err := kcp.Dial(nodeAddr)
 	if err != nil {
 		return nil, err
 	}

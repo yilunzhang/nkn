@@ -174,15 +174,21 @@ func (config *Configuration) IncrementPort() {
 	}
 }
 
-func checkPort(host string, port uint16) (bool, error) {
-	conn, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
+func checkPort(host string, port uint16, portType string) (bool, error) {
+	conn, err := net.Listen(portType, ":"+strconv.Itoa(int(port)))
 	if err != nil {
 		return false, fmt.Errorf("Port %d is in use", port)
 	}
 	defer conn.Close()
 
-	isOpen, err := portscanner.CheckTCP(host, port)
-	return isOpen, err
+	switch portType {
+	case "tcp":
+		return portscanner.CheckTCP(host, port)
+	case "udp":
+		return portscanner.CheckUDP(host, port)
+	default:
+		return false, errors.New("Unknown port type")
+	}
 }
 
 func (config *Configuration) CheckPorts(myIP string) (bool, error) {
@@ -192,9 +198,15 @@ func (config *Configuration) CheckPorts(myIP string) (bool, error) {
 		config.HttpWsPort,
 		config.HttpJsonPort,
 	}
-	for _, port := range allPorts {
-		log.Printf("[INFO] Checking TCP port %d", port)
-		isOpen, err := checkPort(myIP, port)
+	portsType := []string{
+		"tcp",
+		"udp",
+		"tcp",
+		"tcp",
+	}
+	for i, port := range allPorts {
+		log.Printf("[INFO] Checking %s port %d", portsType[i], port)
+		isOpen, err := checkPort(myIP, port, portsType[i])
 		if err != nil {
 			return false, err
 		}
