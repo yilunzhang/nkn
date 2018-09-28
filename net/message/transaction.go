@@ -29,6 +29,11 @@ type trn struct {
 
 func (msg trn) Handle(node Noder) error {
 	txn := &msg.txn
+
+	if txn.TxType != transaction.TransferAsset && txn.TxType != transaction.Commit &&
+		txn.TxType != transaction.RegisterName && txn.TxType != transaction.DeleteName {
+		return errors.New("invalid transaction type")
+	}
 	if !node.LocalNode().ExistHash(txn.Hash()) {
 		// broadcast transaction if never received
 		node.LocalNode().BroadcastTransaction(node, txn)

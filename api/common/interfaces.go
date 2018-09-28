@@ -299,7 +299,10 @@ func sendRawTransaction(s Serverer, params map[string]interface{}) map[string]in
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
 			return respPacking(nil, INVALID_TRANSACTION)
 		}
-
+		if txn.TxType != transaction.TransferAsset && txn.TxType != transaction.Commit &&
+			txn.TxType != transaction.RegisterName && txn.TxType != transaction.DeleteName {
+			return respPacking(nil, INVALID_TRANSACTION)
+		}
 		hash = txn.Hash()
 		if errCode := VerifyAndSendTx(node, &txn); errCode != errors.ErrNoError {
 			return respPacking(nil, INVALID_TRANSACTION)
