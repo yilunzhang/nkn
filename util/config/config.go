@@ -31,6 +31,7 @@ var (
 	Parameters    = &Configuration{
 		Magic:        99281,
 		Version:      1,
+		Transport:    "tcp",
 		NodePort:     30001,
 		HttpWsPort:   30002,
 		HttpJsonPort: 30003,
@@ -50,7 +51,6 @@ type Configuration struct {
 	RestKeyPath          string   `json:"RestKeyPath"`
 	RPCCert              string   `json:"RPCCert"`
 	RPCKey               string   `json:"RPCKey"`
-	HttpInfoPort         uint16   `json:"HttpInfoPort"`
 	HttpWsPort           uint16   `json:"HttpWsPort"`
 	HttpJsonPort         uint16   `json:"HttpJsonPort"`
 	NodePort             uint16   `json:"-"`
@@ -66,6 +66,7 @@ type Configuration struct {
 	MaxHdrSyncReqs       int      `json:"MaxConcurrentSyncHeaderReqs"`
 	GenesisBlockProposer string   `json:"GenesisBlockProposer"`
 	Hostname             string   `json:"Hostname"`
+	Transport            string   `json:"Transport"`
 }
 
 func Init() error {
@@ -147,13 +148,28 @@ func (config *Configuration) IncrementPort() {
 	step := maxPort - minPort + 1
 	var delta uint16
 	for {
-		conn, err := net.Listen("tcp", ":"+strconv.Itoa(int(config.NodePort+delta)))
-		if err == nil {
-			conn.Close()
-			break
+		tcpConn, err := net.Listen("tcp", ":"+strconv.Itoa(int(config.NodePort+delta)))
+		if err != nil {
+			fmt.Println(err)
+			delta += step
+			continue
 		}
-		fmt.Println(err)
-		delta += step
+		tcpConn.Close()
+
+		udpAddr, err := net.ResolveUDPAddr("udp", ":"+strconv.Itoa(int(config.NodePort+delta)))
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		udpConn, err := net.ListenUDP("udp", udpAddr)
+		if err != nil {
+			fmt.Println(err)
+			delta += step
+			continue
+		}
+		udpConn.Close()
+
+		break
 	}
 	config.NodePort += delta
 	config.HttpWsPort += delta
