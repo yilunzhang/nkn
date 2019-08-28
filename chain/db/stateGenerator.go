@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/nknorg/nkn/block"
 	"github.com/nknorg/nkn/chain"
@@ -180,6 +181,7 @@ func (cs *ChainStore) GenerateStateRoot(b *block.Block, genesisBlockInitialized,
 }
 
 func (cs *ChainStore) generateStateRoot(b *block.Block, genesisBlockInitialized, needBeCommitted bool) (*StateDB, Uint256, error) {
+	t := time.Now()
 	stateRoot := EmptyUint256
 	if genesisBlockInitialized {
 		var err error
@@ -265,6 +267,9 @@ func (cs *ChainStore) generateStateRoot(b *block.Block, genesisBlockInitialized,
 		totalFee += Fixed64(txn.UnsignedTx.Fee)
 	}
 
+	fmt.Println(11, time.Since(t))
+	t = time.Now()
+
 	if height == 0 { //genesisBlock
 		if err = cs.spendTransaction(states, b.Transactions[0], totalFee, true, height); err != nil {
 			return nil, EmptyUint256, err
@@ -290,6 +295,9 @@ func (cs *ChainStore) generateStateRoot(b *block.Block, genesisBlockInitialized,
 		}
 	}
 
+	fmt.Println(12, time.Since(t))
+	t = time.Now()
+
 	var root Uint256
 	if needBeCommitted {
 		root, err = states.Finalize(true)
@@ -299,6 +307,8 @@ func (cs *ChainStore) generateStateRoot(b *block.Block, genesisBlockInitialized,
 	} else {
 		root = states.IntermediateRoot()
 	}
+
+	fmt.Println(13, time.Since(t))
 
 	return states, root, nil
 }

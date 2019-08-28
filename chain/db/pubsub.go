@@ -222,7 +222,7 @@ func (sdb *StateDB) unsubscribe(topic string, subscriber []byte, identifier stri
 		if err := sdb.cancelPubSubCleanupAtHeight(ps.expiresAt, id); err != nil {
 			return err
 		}
-		sdb.pubSub.Store(id, nil)
+		sdb.pubSub.Store(string(id), nil)
 	}
 
 	return nil
@@ -271,7 +271,7 @@ func (sdb *StateDB) getSubscribers(topic string, bucket, offset, limit uint32) (
 		if i < offset {
 			continue
 		}
-		if limit > 0 && i >= offset + limit {
+		if limit > 0 && i >= offset+limit {
 			break
 		}
 

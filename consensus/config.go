@@ -15,7 +15,7 @@ const (
 	minVotingInterval           = 200 * time.Millisecond
 	maxVotingInterval           = 2 * time.Second
 	proposingInterval           = 500 * time.Millisecond
-	proposingTimeout            = chain.ProposingTimeTolerance * 4 / 5
+	proposingTimeout            = chain.ProposingTimeTolerance / 2
 	cacheExpiration             = 3600 * time.Second
 	cacheCleanupInterval        = 600 * time.Second
 	proposingStartDelay         = config.ConsensusTimeout + time.Second

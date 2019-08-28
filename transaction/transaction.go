@@ -237,19 +237,19 @@ func (tx *Transaction) SetHash(hash Uint256) {
 }
 
 func (txn *Transaction) VerifySignature() error {
-	if txn.UnsignedTx.Payload.Type == pb.COINBASE_TYPE {
-		return nil
-	}
-
-	if txn.isSignatureVerified {
-		return nil
-	}
-
-	if err := signature.VerifySignableData(txn); err != nil {
-		return err
-	}
-
-	txn.isSignatureVerified = true
+	// if txn.UnsignedTx.Payload.Type == pb.COINBASE_TYPE {
+	// 	return nil
+	// }
+	//
+	// if txn.isSignatureVerified {
+	// 	return nil
+	// }
+	//
+	// if err := signature.VerifySignableData(txn); err != nil {
+	// 	return err
+	// }
+	//
+	// txn.isSignatureVerified = true
 
 	return nil
 }

@@ -56,6 +56,10 @@ type TxnPool struct {
 	txnSize              int64
 }
 
+func (tp *TxnPool) GetCount() int32 {
+	return atomic.LoadInt32(&tp.txnCount)
+}
+
 func NewTxPool() *TxnPool {
 	tp := &TxnPool{
 		blockValidationState: chain.NewBlockValidationState(),
@@ -536,14 +540,15 @@ func (tp *TxnPool) CleanSubmittedTransactions(txns []*transaction.Transaction) e
 			atomic.AddInt64(&tp.txnSize, -int64(t.GetSize()))
 		}
 
-		tp.TxLists.Range(func(k, v interface{}) bool {
-			listLen := v.(*NonceSortedTxs).Len()
-			if listLen == 0 {
-				tp.TxLists.Delete(k)
-			}
-			return true
-		})
 	}
+
+	tp.TxLists.Range(func(k, v interface{}) bool {
+		listLen := v.(*NonceSortedTxs).Len()
+		if listLen == 0 {
+			tp.TxLists.Delete(k)
+		}
+		return true
+	})
 
 	tp.blockValidationState.Lock()
 	defer tp.blockValidationState.Unlock()

@@ -26,7 +26,10 @@ import (
 	"github.com/nknorg/nkn/dashboard"
 	serviceConfig "github.com/nknorg/nkn/dashboard/config"
 	"github.com/nknorg/nkn/node"
+	"github.com/nknorg/nkn/pb"
 	"github.com/nknorg/nkn/por"
+	"github.com/nknorg/nkn/program"
+	"github.com/nknorg/nkn/transaction"
 	"github.com/nknorg/nkn/util/config"
 	"github.com/nknorg/nkn/util/log"
 	"github.com/nknorg/nkn/util/password"
@@ -35,7 +38,7 @@ import (
 	nnetnode "github.com/nknorg/nnet/node"
 	"github.com/nknorg/nnet/overlay"
 	"github.com/nknorg/nnet/overlay/chord"
-	"github.com/rdegges/go-ipify"
+	ipify "github.com/rdegges/go-ipify"
 	"github.com/urfave/cli"
 )
 
@@ -294,6 +297,45 @@ func nknMain(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	go func() {
+		time.Sleep(time.Minute)
+
+		count := 1000000
+		accounts := make([]*vault.Account, count)
+		txns := make([]*transaction.Transaction, count)
+		for i := 0; i < count; i++ {
+			accounts[i], _ = vault.NewAccount()
+			txns[i], _ = transaction.NewTransferAssetTransaction(account.ProgramHash, accounts[i].ProgramHash, uint64(i), 2, 0)
+			ct, _ := program.CreateSignatureProgramContext(account.PubKey())
+			txns[i].SetPrograms([]*pb.Program{ct.NewProgram(nil)})
+		}
+
+		for i := 0; i < len(txns); i++ {
+			if err = localNode.AppendTxnPool(txns[i]); err != nil {
+				fmt.Println(err)
+			}
+		}
+
+		for {
+			time.Sleep(time.Minute)
+			if localNode.TxnPool.GetCount() == 0 {
+				for i := 0; i < count; i++ {
+					txns[i], _ = transaction.NewTransferAssetTransaction(accounts[i].ProgramHash, account.ProgramHash, 0, 1, 0)
+					ct, _ := program.CreateSignatureProgramContext(accounts[i].PubKey())
+					txns[i].SetPrograms([]*pb.Program{ct.NewProgram(nil)})
+				}
+
+				for i := 0; i < len(txns); i++ {
+					if err = localNode.AppendTxnPool(txns[i]); err != nil {
+						fmt.Println(err)
+					}
+				}
+
+				break
+			}
+		}
+	}()
 
 	consensus.Start()
 

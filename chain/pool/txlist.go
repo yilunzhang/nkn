@@ -135,6 +135,9 @@ func (nst *NonceSortedTxs) Seek() (*transaction.Transaction, error) {
 }
 
 func (nst *NonceSortedTxs) getNonce(hash common.Uint256) uint64 {
+	nst.mu.RLock()
+	defer nst.mu.RUnlock()
+
 	if tx, ok := nst.txs[hash]; ok {
 		return tx.UnsignedTx.Nonce
 	}
@@ -181,6 +184,9 @@ func (nst *NonceSortedTxs) Get(nonce uint64) (*transaction.Transaction, error) {
 }
 
 func (nst *NonceSortedTxs) GetAllTransactions() []*transaction.Transaction {
+	nst.mu.RLock()
+	defer nst.mu.RUnlock()
+
 	txns := make([]*transaction.Transaction, 0)
 	for _, txnHash := range nst.idx {
 		txns = append(txns, nst.txs[txnHash])

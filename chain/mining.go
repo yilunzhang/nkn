@@ -2,6 +2,8 @@ package chain
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/nknorg/nkn/block"
 	"github.com/nknorg/nkn/common"
@@ -54,6 +56,7 @@ func isLowFeeTxnFull(txnCount uint32, txnSize uint32) bool {
 }
 
 func (bm *BuiltinMining) BuildBlock(ctx context.Context, height uint32, chordID []byte, winnerHash common.Uint256, winnerType pb.WinnerType) (*block.Block, error) {
+	t := time.Now()
 	var txnList []*transaction.Transaction
 	var txnHashList []common.Uint256
 
@@ -88,6 +91,9 @@ func (bm *BuiltinMining) BuildBlock(ctx context.Context, height uint32, chordID 
 	}
 
 	bvs := NewBlockValidationState()
+
+	fmt.Println(1, time.Since(t))
+	t = time.Now()
 
 	for {
 		select {
@@ -144,6 +150,9 @@ func (bm *BuiltinMining) BuildBlock(ctx context.Context, height uint32, chordID 
 		}
 	}
 
+	fmt.Println(2, time.Since(t))
+	t = time.Now()
+
 	txnRoot, err := crypto.ComputeRoot(txnHashList)
 	if err != nil {
 		return nil, err
@@ -184,12 +193,17 @@ func (bm *BuiltinMining) BuildBlock(ctx context.Context, height uint32, chordID 
 		Transactions: txnList,
 	}
 
+	fmt.Println(3, time.Since(t))
+	t = time.Now()
+
 	curStateHash, err := DefaultLedger.Store.GenerateStateRoot(block, true, false)
 	if err != nil {
 		return nil, err
 	}
 
 	header.UnsignedHeader.StateRoot = curStateHash.ToArray()
+
+	fmt.Println(4, time.Since(t))
 
 	return block, nil
 }

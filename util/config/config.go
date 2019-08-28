@@ -26,8 +26,8 @@ import (
 const (
 	MaxUint                      = ^uint(0)
 	MaxInt                       = int(MaxUint >> 1)
-	MaxNumTxnPerBlock            = 4096
-	MaxBlockSize                 = 1 * 1024 * 1024 // in bytes
+	MaxNumTxnPerBlock            = 409600
+	MaxBlockSize                 = 1000 * 1024 * 1024 // in bytes
 	ConsensusDuration            = 20 * time.Second
 	ConsensusTimeout             = 60 * time.Second
 	MinNumSuccessors             = 8
@@ -135,10 +135,10 @@ var (
 		RPCWriteTimeout:              10,
 		KeepAliveTimeout:             15,
 		NATPortMappingTimeout:        365 * 86400,
-		NumTxnPerBlock:               256,
-		TxPoolPerAccountTxCap:        32,
+		NumTxnPerBlock:               100000,
+		TxPoolPerAccountTxCap:        1000000,
 		TxPoolTotalTxCap:             0,
-		TxPoolMaxMemorySize:          32,
+		TxPoolMaxMemorySize:          0,
 		RegisterIDRegFee:             0,
 		RegisterIDTxnFee:             0,
 		LogPath:                      "Log",
@@ -147,7 +147,7 @@ var (
 		MaxGetIDSeeds:                3,
 		DBFilesCacheCapacity:         100,
 		NumLowFeeTxnPerBlock:         0,
-		LowFeeTxnSizePerBlock:        4096,
+		LowFeeTxnSizePerBlock:        0,
 		MinTxnFee:                    10000000,
 		AllowEmptyBeneficiaryAddress: false,
 		WebGuiListenAddress:          "127.0.0.1",
